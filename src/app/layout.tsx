@@ -12,6 +12,16 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_DOCS_BASE_URL ?? "http://localhost:3000",
   ),
+  icons: {
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    images: [{ url: "/pum-icon-trans.png", width: 1024, height: 1024, alt: "pumperp" }],
+  },
 };
 
 export default function RootLayout({
