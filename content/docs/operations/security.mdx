@@ -1,7 +1,7 @@
 ---
 title: Security & risk
 description: Audit status, secrets handling, and user-facing risk disclosure.
-llmDescription: "pumperp security posture. Open source unaudited experimental. PROTOCOL_PRIVATE_KEY CLANKER_API_KEY ONEINCH_API_KEY in env only. ProtocolRegistry Ownable enroll pause. Hot wallet risk. High leverage liquidation. No formal audit. SECURITY reporting if added in main repo. User disclaimer high leverage Avantis experimental not financial advice."
+llmDescription: "pumperp security posture. Open source unaudited experimental. Required secret PROTOCOL_PRIVATE_KEY signs all engine txs. Optional VENICE_API_KEY or VENICE_AUTO_MINT_KEY for desk agent LLM; PINATA_JWT for IPFS token images at launch; NEYNAR_API_KEY for Farcaster. Clanker deploy and swaps are onchain via SDK and Uniswap — no Clanker or 1inch API keys in production paths. ProtocolRegistry Ownable enroll pause. Hot wallet risk. High leverage liquidation."
 ---
 
 ## Audit status
@@ -15,13 +15,21 @@ Review before deploying capital:
 
 ## Secrets
 
-| Secret | Never commit |
-| --- | --- |
-| `PROTOCOL_PRIVATE_KEY` | Controls all engine txs |
-| `CLANKER_API_KEY` | Deploy authorization |
-| `ONEINCH_API_KEY` | Swap API |
+Only secrets that the **running engine actually reads** belong here. Ignore dead placeholders in `config.ts` / `.env.example` that nothing imports.
 
-Use `.env` locally; use host secrets (Vercel, Railway, etc.) in production.
+| Secret | Required | Purpose |
+| --- | --- | --- |
+| `PROTOCOL_PRIVATE_KEY` | **Yes** | Signs Clanker deploys, fee claims, Avantis txs, Uniswap swaps, burns |
+| `VENICE_API_KEY` | Optional | Venice LLM for per-token desk agent (`decideDeskEntry`) |
+| `PINATA_JWT` | Optional | Pin creator token images to IPFS at launch |
+| `NEYNAR_API_KEY` | Optional | Farcaster mini-app / social features |
+
+**Not used in production code paths** (safe to leave empty):
+
+- `CLANKER_API_KEY` — Clanker v4 deploy goes through **onchain** `clanker-sdk` + protocol wallet; no HTTP API key
+- `ONEINCH_API_KEY` — buybacks route **USDC → WETH (Uniswap v3) → token (Uniswap v4)** in `uniswap.ts`; 1inch only appears in an old recon script
+
+Use `.env` locally; use host secrets in production. Never commit `.env`.
 
 ## Contract admin
 
@@ -37,7 +45,7 @@ Operational key hygiene: separate deployer vs day-to-day if scaling ops.
 Single hot wallet model:
 
 - Holds USDC for Avantis collateral and swap paths
-- Holds ETH for gas
+- Holds ETH for gas (and WETH wrap when legacy buyback accumulators drain)
 - Fully automated — no human approval per tx
 
 Monitor balances and unexpected outflows.
@@ -57,4 +65,4 @@ For vulnerabilities in the main app repo, follow `SECURITY.md` there when publis
 
 ## Docs integrity
 
-Documentation at docs.pumperp.com should reflect **implemented behavior** in `pumperp/main`, not historical GMX sections in `clanker-base-fork-plan-v7.md`. When code and docs diverge, **code wins** — file a PR to `pumperp-docs`.
+Documentation must match **`pumperp` implementation**, not the historical GMX plan doc or Fission Solana README. When code and docs diverge, **code wins**.

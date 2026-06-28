@@ -19,10 +19,11 @@ index.html, src/js/     →    backend/src/
                              ├── services/
                              │   ├── clanker.ts
                              │   ├── registry.ts
-                             │   ├── uniswap.ts
-                             │   ├── agent.ts
-                             │   ├── market-signal.ts
-                             │   └── perp/avantis.ts
+                         │   ├── uniswap.ts       USDC/WETH/token swaps (v3 + v4)
+                         │   ├── venice.ts        LLM desk agent (optional)
+                         │   ├── agent.ts         decideDeskEntry
+                         │   ├── market-signal.ts Pyth momentum fallback
+                         │   └── perp/avantis.ts
                              ├── state.ts
                              └── config.ts
 
@@ -55,7 +56,7 @@ On restart, workers re-read registry + Avantis and **reconcile** desk references
 
 `PerpVenue` (`backend/src/services/perp/PerpVenue.ts`) abstracts the venue. The live implementation is **`avantis.ts`** — tx-builder API, data API, Pyth prices, USDC collateral.
 
-Do not wire GMX or Jupiter into workers; swap venues by implementing a new adapter.
+Swaps are **Uniswap on Base** (`uniswap.ts`, `univ4.ts`) — not 1inch aggregators. Do not wire GMX or Jupiter into workers; swap perp venues by implementing a new `PerpVenue` adapter.
 
 ## Protocol wallet
 

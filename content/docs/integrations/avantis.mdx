@@ -19,8 +19,9 @@ Implementation: `backend/src/services/perp/avantis.ts`
 
 ## Collateral
 
-- **USDC** on Base — fees arrive as USDC from Clanker (no WETH→USDC swap needed on the happy path)
-- Legacy WETH paths may still exist in buyback fallbacks
+- **USDC** on Base — LP fees arrive as USDC from Clanker FeeLocker; desk manager deploys USDC directly as Avantis collateral
+- **Buybacks** (separate from desk collateral): `swapUsdcForToken` routes USDC → WETH (Uniswap v3) → creator/PUM token (Uniswap v4) — not 1inch
+- Legacy WETH accumulators in `buyback-engine` may still drain old state on restart
 
 ## Min notional
 

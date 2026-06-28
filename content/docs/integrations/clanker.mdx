@@ -62,6 +62,8 @@ Batch size limited by `CLAIM_BATCH_SIZE` to keep gas predictable.
 | Sharing config PDA verification | Recipients at SDK deploy |
 | Separate admin revoke check | Clanker ownership model |
 
-## API key
+## Deploy auth
 
-`CLANKER_API_KEY` required for SDK deploy in production. Never commit to git.
+Deploy is **fully onchain**: `clanker-sdk/v4` + protocol wallet via viem. There is **no Clanker REST API key** in the live launch path.
+
+Optional: `PINATA_JWT` to pin `image` URLs to IPFS before deploy (`backend/src/services/ipfs.ts`).

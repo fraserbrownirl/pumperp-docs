@@ -45,13 +45,14 @@ Skips when no enrolled tokens or dust below thresholds.
 
 **PUM** (`runBuybackCycle`):
 
-- Prefers USDC path (`swapUsdcForToken` → `burnTokens`)
-- Falls back to legacy WETH accumulator if present
+- Primary: USDC → WETH (Uniswap v3) → PUM (Uniswap v4) via `swapUsdcForToken` → `burnTokens`
+- Legacy fallback: drain old WETH accumulator if present
 - Min batch ~0.5 USDC
 
 **Creator** (`runCreatorBuybackCycle`):
 
 - Drains `consumeCreatorBuybacksAbove(CREATOR_BUYBACK_MIN_USDC)` queue
+- Same Uniswap USDC → WETH → token path per creator token
 - Per-token swap + burn — the Fission "profits → derivative burn" leg
 
 ## Fission worker mapping

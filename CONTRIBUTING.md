@@ -24,4 +24,10 @@ llmDescription: "Dense summary for /llms.txt — mechanisms, invariants, names."
 
 Implementation lives in [pumperp](https://github.com/fraserbrown/pumperp). When code changes, update docs in the same release cycle.
 
-Do not document GMX or pooled-bucket behavior from the historical plan doc — the live stack uses **Avantis** and **per-token desks**.
+Do not document legacy assumptions the codebase has moved past:
+
+- GMX, pooled buckets, `FEE_SPLIT` 70/30 (historical plan / Fission Solana)
+- `CLANKER_API_KEY` or `ONEINCH_API_KEY` as required (unused in `backend/src`)
+- Jupiter / 1inch as live swap/perp venues
+
+Verify env vars and workers against `pumperp/backend/src` before publishing.
