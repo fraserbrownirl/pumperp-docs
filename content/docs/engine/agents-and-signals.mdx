@@ -1,0 +1,62 @@
+---
+title: Agents & signals
+description: How desk entry picks market, side, and leverage before opening on Avantis.
+llmDescription: "Per-token desk agent decideDeskEntry in agent.ts. Scans ALL_PERPS_MARKETS ETH BTC; evaluateEntry from market-signal.ts checks momentum vs SIGNAL.entryMomentumPct volatility vs maxVolatilityPct optional requireActiveSession. Picks highest-scoring momentum-aligned candidate. SIGNAL.enabled=false opens default long at max leverage. Leverage capped min RISK.leverage AVANTIS_MAX_LEVERAGE 75. Launch-time underlying/isLong in registry are not binding for desk open. Pyth Hermes prices."
+---
+
+Unlike Fission (where registration tied a token to an underlying like SOL-PERP), pumperp desks are opened by an **agent** that reads live market structure.
+
+## Decision flow
+
+```mermaid
+flowchart TD
+  Start["manageOneDesk(token)"] --> Halt{Desk halted?}
+  Halt -->|yes| Skip[Skip]
+  Halt -->|no| Pending{perp USDC ≥ min?}
+  Pending -->|no| Skip
+  Pending -->|yes| Exists{Desk exists?}
+  Exists -->|yes| Increase[Increase position]
+  Exists -->|no| Agent["decideDeskEntry(token)"]
+  Agent --> Allow{allow?}
+  Allow -->|no| Defer[Defer — re-queue USDC]
+  Allow -->|yes| Open[Open Avantis desk]
+```
+
+## `decideDeskEntry`
+
+Located in `backend/src/services/agent.ts`.
+
+When `SIGNAL.enabled === true` (default):
+
+1. For each market in `['ETH', 'BTC']`
+2. Fetch signal from `market-signal.ts` (Pyth Hermes + rolling samples)
+3. Evaluate long and short entry via `evaluateEntry`
+4. Rank candidates by `|momentumPct|`
+5. Return best `(market, side, leverage)` or defer with reason
+
+When `SIGNAL.enabled === false` ("full degen"):
+
+- Opens **long ETH** at max leverage immediately — no momentum filter
+
+## Signal parameters
+
+| Config | Default | Meaning |
+| --- | --- | --- |
+| `SIGNAL.entryMomentumPct` | 0.0015 | Min \|momentum\| to enter |
+| `SIGNAL.maxVolatilityPct` | 0.03 | Skip if vol too high |
+| `SIGNAL.requireActiveSession` | false | Restrict to active trading session |
+| `SIGNAL.momentumLookbackMs` | 900000 | 15 min sample window |
+
+## Leverage
+
+```typescript
+leverage = Math.min(config.RISK.leverage, config.AVANTIS_MAX_LEVERAGE) // default 75
+```
+
+Higher leverage reduces collateral needed to hit Avantis min notional — but increases liquidation speed.
+
+## Registry vs desk
+
+`ProtocolRegistry` stores `underlying`, `isLong`, `leverage` at enroll time. These fields serve **display and indexing**; the **desk agent** chooses live market/side when opening unless you disable signals and rely on defaults.
+
+If product requirements change to **lock** desk direction at launch, that would be an explicit design change in `desk-manager.ts` — not current behavior.

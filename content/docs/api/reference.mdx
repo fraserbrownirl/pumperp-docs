@@ -1,0 +1,67 @@
+---
+title: API reference
+description: REST endpoints under /api/v1.
+llmDescription: "pumperp REST API prefix /api/v1 JSON responses. POST /tokens/launch Clanker deploy enroll. POST /tokens/register existing token. GET /tokens list enrolled. GET /stats engine Avantis snapshot. GET /buybacks PUM history. GET /buybacks/:token creator burns. GET /activity feed. GET /health worker health. Evolved from Fission API which used /positions/:mint per-token Jupiter positions."
+---
+
+All endpoints are prefixed with **`/api/v1`**. Responses are JSON unless noted.
+
+Base URL: production backend (e.g. `https://api.pumperp.com`) or `http://localhost:3001` in dev.
+
+## Tokens
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `POST` | `/tokens/launch` | Deploy Clanker token + enroll |
+| `POST` | `/tokens/register` | Enroll existing Clanker token |
+| `GET` | `/tokens` | List enrolled tokens |
+
+### Launch example
+
+```bash
+curl -X POST http://localhost:3001/api/v1/tokens/launch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Perp Token",
+    "symbol": "MPT",
+    "image": "https://example.com/logo.png",
+    "diemPct": 28.5,
+    "perpPct": 57,
+    "creatorPct": 9.5
+  }'
+```
+
+Reward percents are of **total fees**; PUM 5% is added automatically.
+
+## Stats & activity
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/stats` | Engine stats + Avantis desk snapshot |
+| `GET` | `/activity` | Recent protocol activity feed |
+| `GET` | `/health` | Worker health and uptime |
+
+## Buybacks
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/buybacks` | PUM buyback & burn history |
+| `GET` | `/buybacks/:token` | Creator token buybacks for address |
+
+## Fission API differences
+
+Fission exposed per-mint Jupiter positions:
+
+| Fission | pumperp |
+| --- | --- |
+| `GET /positions/:mint` | Desk state embedded in `/stats` / token detail |
+| `GET /status`, `/runs` | `/health` + `/activity` |
+| Solana `mint` | EVM `0x` token address |
+
+## Frontend
+
+The Vite app uses `VITE_API_BASE` or `/api/v1` proxy — see `vite.config.js`.
+
+## Errors
+
+Controllers return `{ error: string }` with appropriate HTTP status on validation failure (invalid reward split, missing env, deploy revert, etc.).

@@ -1,0 +1,60 @@
+---
+title: Security & risk
+description: Audit status, secrets handling, and user-facing risk disclosure.
+llmDescription: "pumperp security posture. Open source unaudited experimental. PROTOCOL_PRIVATE_KEY CLANKER_API_KEY ONEINCH_API_KEY in env only. ProtocolRegistry Ownable enroll pause. Hot wallet risk. High leverage liquidation. No formal audit. SECURITY reporting if added in main repo. User disclaimer high leverage Avantis experimental not financial advice."
+---
+
+## Audit status
+
+The pumperp codebase is **open source** and **not formally audited**. Smart contract surface is intentionally minimal (`ProtocolRegistry.sol` — enroll/pause/resume). The majority of funds flow through Clanker, Avantis, and Uniswap infrastructure.
+
+Review before deploying capital:
+
+- [github.com/fraserbrown/pumperp](https://github.com/fraserbrown/pumperp)
+- Onchain txs from the protocol wallet on Basescan
+
+## Secrets
+
+| Secret | Never commit |
+| --- | --- |
+| `PROTOCOL_PRIVATE_KEY` | Controls all engine txs |
+| `CLANKER_API_KEY` | Deploy authorization |
+| `ONEINCH_API_KEY` | Swap API |
+
+Use `.env` locally; use host secrets (Vercel, Railway, etc.) in production.
+
+## Contract admin
+
+`ProtocolRegistry` is **`Ownable`**:
+
+- Only owner can `enroll`, `pause`, `resume`
+- Compromised owner key can pause tokens or enroll malicious entries
+
+Operational key hygiene: separate deployer vs day-to-day if scaling ops.
+
+## Engine wallet
+
+Single hot wallet model:
+
+- Holds USDC for Avantis collateral and swap paths
+- Holds ETH for gas
+- Fully automated — no human approval per tx
+
+Monitor balances and unexpected outflows.
+
+## User-facing risks
+
+Disclose clearly (see pumperp.com risk section):
+
+- **Leverage up to 75×** — rapid liquidation
+- **No profit guarantee** — desk losses are real
+- **Speculative tokens** — Clanker launches are high risk
+- **Not financial advice**
+
+## Reporting
+
+For vulnerabilities in the main app repo, follow `SECURITY.md` there when published. Do not disclose exploit details publicly before a fix window.
+
+## Docs integrity
+
+Documentation at docs.pumperp.com should reflect **implemented behavior** in `pumperp/main`, not historical GMX sections in `clanker-base-fork-plan-v7.md`. When code and docs diverge, **code wins** — file a PR to `pumperp-docs`.

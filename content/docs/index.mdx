@@ -1,0 +1,48 @@
+---
+title: Documentation
+description: Technical documentation for pumperp — perpetual-backed Clanker tokens on Base.
+llmDescription: "Entry point for pumperp docs. Base-native Fission fork: Clanker v4 USDC-pool launches with configurable LP fee routing (fixed 5% PUM tithe + DIEM/perp-agent/creator split), per-token Avantis perp desks, autonomous buyback & burn of PUM and creator tokens. Chain Base mainnet. Stack TypeScript/viem backend, Vite frontend, Foundry ProtocolRegistry. Links to philosophy, how-it-works, architecture, workers, Clanker/Avantis integrations, REST API, deployment."
+---
+
+pumperp is a **Base-native fork of the [Fission](https://github.com/FissionDotFunSOL/fission) model**: creator LP fees from Clanker tokens feed an autonomous engine that runs Avantis perpetual desks and buyback-and-burn loops — no vaults, no manual treasury.
+
+Where Fission on Solana routes Pump.fun fees into Jupiter Perps with a fixed 70/30 split, pumperp on Base deploys via **Clanker v4** (USDC pool, dynamic fee tier) and routes fees through a **four-way split**: fixed **5% PUM** tithe plus your allocation of **DIEM**, **perp-agent**, and **creator USDC**.
+
+## Quick links
+
+- [Philosophy](/philosophy) — why the Fission flywheel, adapted for Base
+- [How it works](/how-it-works) — launch → claim → desk → buyback
+- [Architecture](/overview/architecture) — frontend, backend workers, onchain registry
+- [Workers](/engine/workers) — scheduler, fee claimer, desk manager, buyback engines
+- [API reference](/api/reference) — `/api/v1` REST surface
+- [Deployment](/operations/deployment) — env vars and deploy order
+
+## Mental model
+
+```mermaid
+flowchart LR
+  Launch["Clanker launch\n(USDC pool)"] --> Fees["LP fees accrue"]
+  Fees --> Claim["Fee claimer\n(protocol wallet)"]
+  Claim --> Split["Reward split\nPUM / DIEM / perp / creator"]
+  Split --> Desk["Per-token Avantis desk"]
+  Split --> PUM["PUM buyback & burn"]
+  Split --> DIEM["DIEM endowment"]
+  Desk --> Profit["Perp profits"]
+  Profit --> Creator["Creator token\nbuyback & burn"]
+```
+
+## Stack at a glance
+
+| Layer | Technology |
+| --- | --- |
+| Chain | Base mainnet |
+| Token launch | Clanker SDK v4, Uniswap v4 USDC pool |
+| Perps | Avantis (USDC collateral, tx-builder API) |
+| Backend | Express + viem workers |
+| Frontend | Vite, vanilla JS |
+| Onchain registry | `ProtocolRegistry.sol` |
+| Persistence | Registry onchain; engine accumulators in memory |
+
+## Risk
+
+Avantis desks use high leverage (up to 75×). Liquidation is real. The protocol is experimental and unaudited. See [Security & risk](/operations/security).

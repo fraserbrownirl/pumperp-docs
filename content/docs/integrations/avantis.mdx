@@ -1,0 +1,66 @@
+---
+title: Avantis
+description: Perp venue — tx-builder, USDC collateral, positions, and min notional.
+llmDescription: "Avantis perp integration avantis.ts implements PerpVenue. Tx building https://tx-builder.avantisfi.com unsigned txs signed by protocol wallet. Pair metadata https://data.avantisfi.com/v2/trading pair index max leverage ~75 min notional AVANTIS_MIN_NOTIONAL_USDC default 100. Collateral USDC Base. Prices Pyth Hermes. Onchain AVANTIS_TRADING AVANTIS_TRADING_STORAGE AVANTIS_PRICE_AGGREGATOR in config.ts. Replaces Fission Jupiter Perps jupiter-perps.js. Test script backend/scripts/avantis-test.ts read open close."
+---
+
+pumperp executes perpetual exposure through **Avantis** on Base — the direct analogue to Fission's **Jupiter Perps** on Solana.
+
+## Integration surface
+
+Implementation: `backend/src/services/perp/avantis.ts`
+
+| Concern | Source |
+| --- | --- |
+| Build txs | `https://tx-builder.avantisfi.com` |
+| Pair metadata | `https://data.avantisfi.com/v2/trading` |
+| Mark/oracle | Pyth Hermes (`hermes.pyth.network`) |
+| Read positions | Data API + onchain `TradingStorage` |
+
+## Collateral
+
+- **USDC** on Base — fees arrive as USDC from Clanker (no WETH→USDC swap needed on the happy path)
+- Legacy WETH paths may still exist in buyback fallbacks
+
+## Min notional
+
+```typescript
+AVANTIS_MIN_NOTIONAL_USDC = 100  // collateral × leverage
+AVANTIS_MAX_LEVERAGE = 75
+```
+
+Desk deploy is re-queued if `deployUsdc × leverage < min notional`.
+
+## Onchain contracts
+
+From `config.ts`:
+
+| Name | Purpose |
+| --- | --- |
+| `AVANTIS_TRADING` | Trading entrypoint |
+| `AVANTIS_TRADING_STORAGE` | Position storage reads |
+| `AVANTIS_PRICE_AGGREGATOR` | Oracle aggregator |
+
+Verify current addresses in repo `config.ts` before mainnet ops.
+
+## Operations
+
+```bash
+npx tsx backend/scripts/avantis-test.ts read
+npx tsx backend/scripts/avantis-test.ts open
+npx tsx backend/scripts/avantis-test.ts close
+```
+
+Requires funded protocol wallet and valid RPC.
+
+## `PerpVenue` interface
+
+Workers import `avantis` — not Avantis types directly. To swap venues, implement `PerpVenue` in a new adapter; do not leak venue-specific fields into `desk-manager.ts`.
+
+## Position model
+
+Each enrolled token may have **one desk** referencing `(market, side, pairIndex, tradeIndex)`. This is **per-token**, not the older pooled-bucket design described in the v7 plan doc.
+
+## PnL
+
+Always check `PerpPosition.pnlAvailable` before profit attribution. False = price feed unavailable.

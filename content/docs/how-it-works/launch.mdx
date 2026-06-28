@@ -1,0 +1,66 @@
+---
+title: Launch flow
+description: Clanker v4 deploy, registry enrollment, and reward split at creation time.
+llmDescription: "pumperp launch mechanics. POST /api/v1/tokens/launch deploys via clanker-sdk v4 on Base: USDC paired Uniswap v4 pool, dynamic fee tier FEE_CONFIGS, protocol wallet as fee recipient. buildRewardSplit validates diemBps+perpBps+creatorBps=9500 with PUM_REWARD_BPS=500 fixed. ProtocolRegistry.enroll stores underlying/isLong/leverage (registry fields; desk agent may override market/side). POST /tokens/register for existing Clanker tokens. No separate Pump.fun-style registration step."
+---
+
+Launch is a **single API call** (or wizard) that deploys the Clanker token and enrolls it in the protocol registry.
+
+## Endpoint
+
+```http
+POST /api/v1/tokens/launch
+Content-Type: application/json
+```
+
+Key body fields:
+
+| Field | Purpose |
+| --- | --- |
+| `name`, `symbol`, `image` | Token metadata |
+| `rewardSplit` or `diemPct` / `perpPct` / `creatorPct` | Fee allocation (see [Fee routing](/how-it-works/fee-routing)) |
+| `creatorBuyUsdc` | Optional initial buy of your token |
+
+## Clanker v4 specifics
+
+pumperp uses **Clanker SDK v4** on Base:
+
+- **Paired token:** USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`)
+- **Pool:** Uniswap v4 via Clanker hooks
+- **Fees:** Dynamic tier (1–5% max aggression) — trading fees accrue to configured recipients
+- **Infrastructure:** `ClankerLocker` → `collectRewards(token)` → `ClankerFeeLocker` keyed by `(recipient, USDC)`
+
+Fee recipients are set **at deploy time**. The protocol wallet receives the protocol share; the creator wallet receives the creator share directly on Clanker — they claim their USDC without going through the engine.
+
+## Registry enrollment
+
+After deploy, the backend calls `ProtocolRegistry.enroll` with:
+
+```solidity
+function enroll(address token, string underlying, bool isLong, uint8 leverage) external onlyOwner
+```
+
+Registry fields are stored onchain for indexing and display. **Desk entry** uses the agent (`decideDeskEntry`) to pick live market/side unless signal filter is disabled.
+
+## Register existing token
+
+```http
+POST /api/v1/tokens/register
+```
+
+For tokens already deployed on Clanker with correct fee configuration. Verifies pool and recipient setup before enroll.
+
+## Compared to Fission registration
+
+Fission required a **second step** after Pump.fun: submit mint, verify PDA fee share, confirm admin revoked.
+
+pumperp **bakes recipients into the Clanker deploy** — there is no separate "share config verification" step because the SDK sets `rewards.recipients` when the token is created.
+
+## Deploy order (protocol operator)
+
+1. Deploy `ProtocolRegistry.sol` on Base
+2. Launch **PUM** (protocol token) via Clanker
+3. Configure backend `.env` — registry address, PUM address, protocol key, API keys
+4. Creators can launch via the frontend or API
+
+See [Deployment](/operations/deployment) for the full env table.

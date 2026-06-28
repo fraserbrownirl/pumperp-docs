@@ -1,0 +1,68 @@
+---
+title: Risk management
+description: Drawdown limits, desk halts, liquidation, and circuit breakers.
+llmDescription: "pumperp risk controls in desk-risk.ts and config.RISK. maxDrawdownPct drawdownReducePct circuitBreakerPct liquidationWarningPct earlyTakeProfitPct takeProfitReducePct reservePct maxPositionUsdc minDeployUsdc minWalletBalanceEth. Desk halt via isTokenDeskHalted. Avantis up to 75x liquidation. pnlAvailable on PerpPosition must be checked before acting on PnL. Experimental unaudited protocol disclaimer."
+---
+
+Perp desks use **up to 75× leverage** on Avantis. Liquidation is expected at scale, not exceptional.
+
+## Risk parameters
+
+From `config.RISK`:
+
+| Parameter | Default | Purpose |
+| --- | --- | --- |
+| `maxPositionUsdc` | 500 | Cap single deploy size |
+| `minDeployUsdc` | 1 | Dust threshold before desk acts |
+| `maxDrawdownPct` | 0.40 | Drawdown before reduction |
+| `drawdownReducePct` | 0.50 | Fraction to reduce on drawdown |
+| `circuitBreakerPct` | 0.50 | Halt threshold |
+| `liquidationWarningPct` | 0.15 | Proximity alert band |
+| `earlyTakeProfitPct` | 0.30 | Take-profit trigger |
+| `takeProfitReducePct` | 0.25 | Reduce size after profit |
+| `reservePct` | 0.20 | Keep collateral reserve |
+| `minWalletBalanceEth` | 0.05 | Gas safety floor |
+
+Tune via environment variables — see [Deployment](/operations/deployment).
+
+## Desk halts
+
+`desk-risk` and profit checks can **halt** a token's desk (`isTokenDeskHalted`). While halted:
+
+- `desk-manager` skips open/increase
+- Pending perp USDC stays queued
+- PUM buyback leg continues (global, not desk-dependent)
+
+## PnL availability
+
+Before acting on desk profit:
+
+```typescript
+if (!position.pnlAvailable) {
+  // price unavailable — not zero profit
+}
+```
+
+`pnlAvailable === false` means oracle/data failure, not necessarily flat PnL.
+
+## Liquidation scenario
+
+1. Adverse move wipes USDC collateral on Avantis
+2. Desk position closed onchain
+3. No creator buyback from that collateral
+4. Future fee claims fund a **new** desk open (if agent allows)
+
+Fission docs describe the same tradeoff: cumulative buyback pressure *may* exceed liquidation losses over time — **not guaranteed**.
+
+## Operational risks
+
+| Risk | Mitigation |
+| --- | --- |
+| Hot wallet compromise | Minimize balance; monitor Basescan |
+| API key leak (Clanker, 1inch) | Rotate keys; rate limits |
+| Extended backend downtime | In-memory state loss; reconcile on boot |
+| Smart contract bug | Registry is minimal Ownable — audit gap remains |
+
+## Product disclaimer
+
+Match tone from pumperp.com legal section: experimental, unaudited, not financial advice. High leverage can zero desk collateral quickly.

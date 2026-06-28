@@ -1,0 +1,53 @@
+---
+title: Philosophy
+description: "The Fission flywheel on Base — fees as engine fuel, not creator cash."
+llmDescription: "Philosophical thesis for pumperp as a Base fork of Fission. Creators forgo direct LP fee cash in exchange for automated perp amplification and deflationary buyback of their token from desk profits. Contrasts vanilla Clanker tokens (no built-in value loop) with the Fission model where protocol takes fee flow and returns upside via burns. Covers one-step Clanker deploy vs Solana two-step Pump.fun+register, USDC fee rails, PUM network effect (5% tithe on every launch), and honest leverage/liquidation tradeoffs."
+---
+
+Regular Clanker tokens have no built-in value mechanism beyond speculation. **pumperp applies the Fission model on Base**: creator LP fees do not sit in a wallet waiting to be dumped — they enter an autonomous engine whose outputs are **perp desk capital**, **PUM buyback & burn**, **DIEM endowment**, and (optionally) **direct creator USDC** — with the creator's long-term upside coming from **buyback & burn of their own token** when the desk profits.
+
+## Fission inverted for Base
+
+| Fission (Solana) | pumperp (Base) |
+| --- | --- |
+| Pump.fun launch + separate registration | **One-step** Clanker deploy with fee recipients baked in |
+| SOL creator fees | **USDC** LP fees (Clanker v4 USDC pool) |
+| Jupiter Perps | **Avantis** perps (USDC collateral) |
+| Fixed 70% perps / 30% FISSION burn | **5% PUM** fixed + configurable **DIEM / perp-agent / creator** split |
+| Per-token Jupiter positions | **Per-token Avantis desks** (agent picks market/side at open) |
+
+The *invariant* is the same: **fees → engine → amplified upside via burns**, not fee extraction by a team.
+
+## Why not cash fees?
+
+Pump.fun and Clanker creators historically treat LP fees as income. That creates a persistent sell pressure narrative: "the dev is farming fees."
+
+Fission reframes the bargain:
+
+1. **Route fees to the protocol engine** instead of your EOA.
+2. **Accept that most fees fund perp collateral** — high leverage can multiply returns *or* get liquidated.
+3. **Capture upside when the desk wins** — profits swap into your token and burn, shrinking supply.
+
+pumperp adds Base-native refinements: **USDC-denominated fees** (cleaner accounting than WETH), **Clanker dynamic fee tiers** (1–5%), and a **PUM tithe** so every launch strengthens the protocol token.
+
+## The flywheel
+
+```
+Trading volume → LP fees → claim → split
+                                      ├─→ perp desk (leveraged exposure)
+                                      ├─→ PUM burn (protocol token)
+                                      ├─→ DIEM stake (intelligence endowment)
+                                      └─→ creator USDC (optional cash leg)
+
+Desk profit → USDC → swap → creator token → burn
+```
+
+Each enrolled token is a small contributor to **PUM** (via the 5% tithe) and a beneficiary of its **own** desk's success.
+
+## Zero trust, not zero risk
+
+The engine runs from an open-source backend signed by a **protocol wallet**. Fee claims, Avantis txs, and burns are verifiable on Basescan. There is no multisig treasury to negotiate with — and no guarantee of profit. High leverage means **liquidation is a first-class outcome**, not an edge case.
+
+## Who this is for
+
+Creators who want a **narrative and mechanism** beyond "another memecoin": perpetual-backed tokens with transparent, autonomous fee routing. Not for users who need predictable cash yield from LP fees.

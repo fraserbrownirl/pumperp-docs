@@ -1,0 +1,78 @@
+---
+title: Architecture
+description: Frontend, Express backend, workers, and onchain registry.
+llmDescription: "pumperp system architecture. Frontend Vite index.html src/js launcher dashboard wallet. Backend Express backend/src api routes controllers workers scheduler services clanker registry uniswap perp/avantis state config. Workers fee-claimer desk-manager buyback-engine creator-buyback diem-engine desk-risk profit-checker price-sampler. ProtocolRegistry.sol onchain enrollment. In-memory state.ts accumulators reconcile on restart. No database. PerpVenue interface abstracts Avantis."
+---
+
+```
+Frontend (Vite)              Backend (Express + workers)
+index.html, src/js/     →    backend/src/
+                             ├── api/           REST handlers
+                             ├── workers/       scheduler-driven engine
+                             │   ├── fee-claimer
+                             │   ├── desk-manager
+                             │   ├── buyback-engine
+                             │   ├── creator-buyback
+                             │   ├── diem-engine
+                             │   ├── desk-risk
+                             │   └── profit-checker
+                             ├── services/
+                             │   ├── clanker.ts
+                             │   ├── registry.ts
+                             │   ├── uniswap.ts
+                             │   ├── agent.ts
+                             │   ├── market-signal.ts
+                             │   └── perp/avantis.ts
+                             ├── state.ts
+                             └── config.ts
+
+Contracts (Foundry)          contracts/src/ProtocolRegistry.sol
+```
+
+## Layer responsibilities
+
+| Layer | Role |
+| --- | --- |
+| **Frontend** | Launch wizard, live dashboard, wallet connect, stats |
+| **API** | Launch/register tokens, expose stats, buybacks, health |
+| **Workers** | Autonomous fee claim, desk management, buybacks, risk |
+| **Services** | Chain I/O — Clanker, Avantis, Uniswap, registry reads |
+| **Registry** | Onchain list of enrolled tokens + `(underlying, isLong, leverage)` |
+| **State** | In-memory queues and accumulators (reconcile on restart) |
+
+## Persistence model
+
+| Data | Where |
+| --- | --- |
+| Enrolled tokens, pause status | `ProtocolRegistry` on Base |
+| Open Avantis positions | Avantis `TradingStorage` onchain |
+| Pending perp USDC, buyback queues, desk refs | **In memory** (`state.ts`) |
+| Worker health | In memory (`scheduler.ts`) |
+
+On restart, workers re-read registry + Avantis and **reconcile** desk references. Unclaimed in-memory allocations may be lost — design assumes frequent fee cycles, not long downtime.
+
+## Perp venue abstraction
+
+`PerpVenue` (`backend/src/services/perp/PerpVenue.ts`) abstracts the venue. The live implementation is **`avantis.ts`** — tx-builder API, data API, Pyth prices, USDC collateral.
+
+Do not wire GMX or Jupiter into workers; swap venues by implementing a new adapter.
+
+## Protocol wallet
+
+A single hot wallet (`PROTOCOL_PRIVATE_KEY`) signs:
+
+- Clanker fee claims
+- Avantis open/increase/reduce/close (via unsigned txs from tx-builder)
+- Uniswap / Universal Router swaps for buybacks
+- Token burns to `0x…dEaD`
+
+All txs are observable on [Basescan](https://basescan.org).
+
+## Repo layout
+
+| Path | Purpose |
+| --- | --- |
+| `pumperp/` | App + contracts (main repo) |
+| `pumperp-docs/` | This documentation site (Fumadocs) |
+
+Docs track **implementation**, not the historical GMX plan in `docs/clanker-base-fork-plan-v7.md`.

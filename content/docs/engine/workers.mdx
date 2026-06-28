@@ -1,0 +1,76 @@
+---
+title: Workers
+description: Scheduler, intervals, and responsibilities of each autonomous worker.
+llmDescription: "pumperp worker reference. scheduler.ts startScheduler runs staggered loops with min/max jitter seconds. Workers: price-sampler 40-70s Pyth momentum; fee-claimer 180-300s claimPooledFeesCycle; desk-manager 300-480s manageTokenDesks per-token Avantis open/increase; buyback-engine 900-1800s PUM USDC/WETH swap burn; creator-buyback 600-1200s per-token profit burns; diem-engine 900-1800s DIEM endowment; desk-risk 300-600s; profit-checker fast loop checkDeskProfits. Health via GET /health. Contrasts Fission 60/75/90/100 min fixed intervals."
+---
+
+The backend **scheduler** runs autonomous workers with randomized intervals (jitter reduces thundering herds). Health is exposed at `GET /api/v1/health`.
+
+## Worker table
+
+| Worker | Interval (sec) | Function |
+| --- | --- | --- |
+| **price-sampler** | 40–70 | Sample Pyth prices; warm momentum/volatility window |
+| **fee-claimer** | 180–300 | Claim USDC LP fees; allocate PUM/DIEM/perp |
+| **desk-manager** | 300–480 | Open/increase per-token Avantis desks |
+| **profit-checker** | ~15 (fast loop) | Detect desk profit; queue creator buybacks |
+| **creator-buyback** | 600–1200 | Swap USDC → creator token → burn |
+| **buyback-engine** | 900–1800 | Swap → PUM → burn |
+| **diem-engine** | 900–1800 | Batch DIEM purchases |
+| **desk-risk** | 300–600 | Drawdown, liquidation proximity, halts |
+
+## Fee claimer
+
+`claimPooledFeesCycle`:
+
+- Loads active tokens from registry cache
+- Claims a **round-robin batch** (`CLAIM_BATCH_SIZE`)
+- Attributes USDC per token → `splitProtocolUsdc` → state accumulators
+
+Skips when no enrolled tokens or dust below thresholds.
+
+## Desk manager
+
+`manageTokenDesks` iterates enrolled tokens:
+
+1. Skip if desk **halted** (risk)
+2. `peekPerpUsdc(token)` — pending perp allocation
+3. If no desk: `decideDeskEntry(token)` (agent)
+4. `consumePerpUsdc` → open or increase Avantis position (USDC collateral)
+5. Enforces `AVANTIS_MIN_NOTIONAL_USDC` (default 100 USDC notional = collateral × leverage)
+
+`reconcileTokenDesks` on startup syncs onchain Avantis trade indices.
+
+## Buyback engines
+
+**PUM** (`runBuybackCycle`):
+
+- Prefers USDC path (`swapUsdcForToken` → `burnTokens`)
+- Falls back to legacy WETH accumulator if present
+- Min batch ~0.5 USDC
+
+**Creator** (`runCreatorBuybackCycle`):
+
+- Drains `consumeCreatorBuybacksAbove(CREATOR_BUYBACK_MIN_USDC)` queue
+- Per-token swap + burn — the Fission "profits → derivative burn" leg
+
+## Fission worker mapping
+
+| Fission (Solana) | pumperp (Base) |
+| --- | --- |
+| Fee Claimer (60 min) | `fee-claimer` (3–5 min jitter) |
+| Position Manager (75 min) | `desk-manager` + `profit-checker` |
+| Buyback Engine (90 min) | `buyback-engine` + `creator-buyback` |
+| Risk Manager (100 min) | `desk-risk` + signal filter |
+
+pumperp adds **DIEM endowment** and **market signal sampling** — not present in the original Fission README.
+
+## Observability
+
+```http
+GET /api/v1/health
+GET /api/v1/stats
+GET /api/v1/activity
+```
+
+Stats include Avantis desk snapshots and aggregate buyback totals where available.

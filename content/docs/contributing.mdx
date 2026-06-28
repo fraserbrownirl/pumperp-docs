@@ -1,0 +1,51 @@
+---
+title: Contributing
+description: How to edit docs, validate frontmatter, and open PRs.
+llmDescription: "Contributing to pumperp-docs Fumadocs site. Edit content/docs/**/*.mdx with title description llmDescription frontmatter. Update meta.json for sidebar. pnpm check:frontmatter pnpm build. LLM features PageActionBar section menus llms.txt llms-full.txt raw md routes."
+---
+
+## Edit content
+
+1. Add or edit MDX under `content/docs/`
+2. Update the nearest `meta.json` (and root `meta.json` for new top-level sections)
+3. Run checks locally
+
+Every page needs frontmatter:
+
+```yaml
+---
+title: Page Title
+description: "One line for humans"
+llmDescription: "Dense paragraph for LLM index — mechanisms, invariants, key names."
+---
+```
+
+Wrap values in quotes if they contain colons.
+
+## Commands
+
+```bash
+pnpm install
+pnpm check:frontmatter
+pnpm build
+pnpm dev
+```
+
+## LLM-first conventions
+
+Pages are **primary LLM feedstock**:
+
+- High technical depth, precise contract/API names
+- Self-contained sections (minimal "as above" without context)
+- Mermaid for flows, tables for constants
+- `llmDescription` must differ from `description` — denser, for `/llms.txt`
+
+## Sync with app repo
+
+When changing pumperp backend behavior, update the matching docs page in the same PR cycle (or immediately after merge to `pumperp/main`).
+
+Canonical product briefing for agents lives in **`pumperp/AGENTS.md`** — keep docs aligned when fee model or workers change.
+
+## Pull requests
+
+Open PRs against `pumperp-docs`. CI should run `pnpm check:frontmatter && pnpm build`.

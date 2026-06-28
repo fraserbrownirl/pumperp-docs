@@ -1,0 +1,80 @@
+---
+title: Deployment
+description: Env vars, deploy order, and dev commands for app and docs.
+llmDescription: "pumperp deployment guide. Order: forge script DeployRegistry Base broadcast, launch PUM via Clanker, set backend env PROTOCOL_PRIVATE_KEY PROTOCOL_TOKEN_ADDRESS REGISTRY_CONTRACT_ADDRESS CLANKER_API_KEY ONEINCH_API_KEY BASE_RPC_URL DIEM_TOKEN_ADDRESS. Dev: contracts forge test, backend npm run dev port 3001, frontend npm run dev. Docs site pumperp-docs pnpm dev NEXT_PUBLIC_DOCS_BASE_URL=https://docs.pumperp.com Vercel DNS CNAME docs.pumperp.com."
+---
+
+## Deploy order (protocol)
+
+1. **Registry** — `cd contracts && forge script script/DeployRegistry.s.sol --rpc-url $BASE_RPC_URL --broadcast`
+2. **PUM** — launch protocol token via Clanker (same path as creator tokens)
+3. **Backend** — configure `.env` from `.env.example`, fund protocol wallet with ETH + operational USDC
+4. **Verify** — `npx tsx backend/scripts/avantis-test.ts read`
+5. **Frontend** — set `VITE_API_BASE`, deploy static/Vite build
+
+## Backend environment
+
+Copy `backend/.env.example` → `backend/.env`. Critical vars:
+
+| Variable | Purpose |
+| --- | --- |
+| `PROTOCOL_PRIVATE_KEY` | Signs all onchain txs |
+| `PROTOCOL_TOKEN_ADDRESS` | PUM token |
+| `REGISTRY_CONTRACT_ADDRESS` | Enrolled token registry |
+| `DIEM_TOKEN_ADDRESS` | DIEM endowment token |
+| `CLANKER_API_KEY` | Clanker SDK deploy |
+| `ONEINCH_API_KEY` | Swap routing (if used) |
+| `BASE_RPC_URL` | Primary RPC |
+| `BASE_RPC_FALLBACKS` | Comma-separated fallbacks |
+
+Never commit `.env` or secrets.
+
+## Local development
+
+```bash
+# Contracts
+cd contracts && forge test
+
+# Backend
+cd backend && cp .env.example .env && npm install && npm run dev
+
+# Frontend (repo root)
+npm install && npm run dev
+```
+
+Backend default port: **3001**. Frontend: Vite dev server (see `vite.config.js`).
+
+## Documentation site
+
+This repo (`pumperp-docs`):
+
+```bash
+cp .env.example .env.local
+pnpm install
+pnpm dev          # http://localhost:3000
+pnpm check:frontmatter
+pnpm build
+```
+
+Production env:
+
+```
+NEXT_PUBLIC_DOCS_BASE_URL=https://docs.pumperp.com
+NEXT_PUBLIC_GITHUB_REPO_URL=https://github.com/fraserbrown/pumperp-docs
+NEXT_PUBLIC_GITHUB_BRANCH=main
+```
+
+### Vercel
+
+1. Import `pumperp-docs` repo
+2. Set env vars above
+3. CNAME `docs.pumperp.com` → Vercel
+
+## Docs vs app repos
+
+| Repo | Host |
+| --- | --- |
+| `pumperp` | pumperp.com + API |
+| `pumperp-docs` | docs.pumperp.com |
+
+Keep docs in sync when API or fee model changes.

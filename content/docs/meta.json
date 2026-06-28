@@ -1,0 +1,17 @@
+{
+  "title": "pumperp",
+  "pages": [
+    "index",
+    "---Concepts---",
+    "philosophy",
+    "...how-it-works",
+    "---Architecture---",
+    "...overview",
+    "...engine",
+    "---Reference---",
+    "...integrations",
+    "...api",
+    "...operations",
+    "contributing"
+  ]
+}

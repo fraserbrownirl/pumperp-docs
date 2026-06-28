@@ -1,0 +1,67 @@
+---
+title: Clanker
+description: v4 deploy, USDC pools, FeeLocker claims, and dynamic fee tiers.
+llmDescription: "Clanker v4 integration in clanker.ts. clanker-sdk deploy Base USDC paired pool Uniswap v4. CLANKER_LOCKER_V4 collectRewards pushes fees to CLANKER_FEE_LOCKER_ADDRESS availableFees claim keyed by recipient and USDC 0x833589. Dynamic FEE_CONFIGS fee tier 1-5 percent. getV4PoolKey cached. claimPooledFees batch round-robin. Creator fee share claimed directly by creator wallet not protocol. Replaces Fission pumpfun.js PDA verification."
+---
+
+pumperp launches tokens through **Clanker SDK v4** on Base — replacing Fission's Pump.fun integration entirely.
+
+## Fee pipeline
+
+```mermaid
+sequenceDiagram
+  participant T as Clanker token
+  participant L as ClankerLocker v4
+  participant FL as FeeLocker
+  participant P as Protocol wallet
+
+  Note over T: Trading generates LP fees
+  P->>L: collectRewards(token)
+  L->>FL: Accrue USDC for recipients
+  P->>FL: claim(protocol, USDC)
+  FL->>P: USDC transfer
+```
+
+## Key addresses
+
+Configured in `backend/src/config.ts` (override via env):
+
+| Contract | Env override |
+| --- | --- |
+| `CLANKER_LOCKER_V4` | `CLANKER_LOCKER_V4` |
+| `CLANKER_FEE_LOCKER_ADDRESS` | `CLANKER_FEE_LOCKER_ADDRESS` |
+| USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+
+Never hardcode addresses in docs without checking `config.ts` — use env for deployments.
+
+## Deploy
+
+`launchToken` uses:
+
+- `Clanker` from `clanker-sdk/v4`
+- `FEE_CONFIGS` / dynamic fee tier
+- `getTickFromMarketCapUSDC` for initial pool tick
+- Protocol + creator recipients in rewards config
+
+## Claims
+
+`claimPooledFees(tokens[])`:
+
+1. For each token: `collectRewards` on locker
+2. Read `availableFees(protocol, USDC)`
+3. `claim` if above dust threshold
+4. Return `{ txHash, usdcClaimed, perToken }`
+
+Batch size limited by `CLAIM_BATCH_SIZE` to keep gas predictable.
+
+## vs Pump.fun (Fission)
+
+| Pump.fun | Clanker v4 |
+| --- | --- |
+| SOL fees | USDC fees |
+| Sharing config PDA verification | Recipients at SDK deploy |
+| Separate admin revoke check | Clanker ownership model |
+
+## API key
+
+`CLANKER_API_KEY` required for SDK deploy in production. Never commit to git.
