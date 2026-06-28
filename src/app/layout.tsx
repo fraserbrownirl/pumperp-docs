@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   openGraph: {
-    images: [{ url: "/pum-icon-trans.png", width: 1024, height: 1024, alt: "pumperp" }],
+    images: [{ url: "/pumperp-logo.png", width: 1024, height: 1024, alt: "pumperp" }],
   },
 };
 
