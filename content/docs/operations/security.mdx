@@ -1,17 +1,90 @@
 ---
 title: Security & risk
-description: Audit status, secrets handling, and user-facing risk disclosure.
-llmDescription: "pumperp security posture. Open source unaudited experimental. Required secret PROTOCOL_PRIVATE_KEY signs all engine txs. Optional VENICE_API_KEY or VENICE_AUTO_MINT_KEY for desk agent LLM; PINATA_JWT for IPFS token images at launch; NEYNAR_API_KEY for Farcaster. Clanker deploy and swaps are onchain via SDK and Uniswap — no Clanker or 1inch API keys in production paths. ProtocolRegistry Ownable enroll pause. Hot wallet risk. High leverage liquidation."
+description: Audit status, AI-assisted contract review, secrets handling, and user-facing risk disclosure.
+llmDescription: "pumperp security posture. Open source experimental not formally audited by a third-party firm. Uses github.com/38d3b7/audit EVM audit skill suite (24 domains 650+ checklist items) on Solidity contracts especially ProtocolRegistry.sol. Others can clone and run same skill or use Code4rena Sherlock Immunefi professional audits. Required secret PROTOCOL_PRIVATE_KEY. Optional VENICE_API_KEY PINATA_JWT NEYNAR_API_KEY. ProtocolRegistry Ownable. Hot wallet backend TypeScript not covered by evm-audit skills. High leverage liquidation."
 ---
 
 ## Audit status
 
-The pumperp codebase is **open source** and **not formally audited**. Smart contract surface is intentionally minimal (`ProtocolRegistry.sol` — enroll/pause/resume). The majority of funds flow through Clanker, Avantis, and Uniswap infrastructure.
+The pumperp codebase is **open source** and has **not received a formal third-party audit** (no Code4rena contest, no paid firm sign-off). Smart contract surface is intentionally minimal (`ProtocolRegistry.sol` — enroll/pause/resume). The majority of funds flow through Clanker, Avantis, and Uniswap infrastructure, which carry their own risk profiles.
 
 Review before deploying capital:
 
 - [github.com/fraserbrown/pumperp](https://github.com/fraserbrown/pumperp)
 - Onchain txs from the protocol wallet on Basescan
+
+**Agent-assisted review is not a formal audit.** It helps catch known vulnerability patterns early; it does not guarantee correctness, economic safety, or absence of bugs in the TypeScript engine or external integrations.
+
+## AI-assisted contract review
+
+We run recurring security review on our **Solidity contracts** using the open **[audit](https://github.com/38d3b7/audit)** skill suite — a vendored, extended fork of [austintgriffith/evm-audit-skills](https://github.com/austintgriffith/evm-audit-skills) with **24 specialized domains** and **650+ checklist items** designed for AI agents (Cursor, Claude Code, etc.).
+
+| | |
+| --- | --- |
+| **Repository** | [github.com/38d3b7/audit](https://github.com/38d3b7/audit) |
+| **Entry point** | Root [`SKILL.md`](https://github.com/38d3b7/audit/blob/main/SKILL.md) → [`evm-audit-master/SKILL.md`](https://github.com/38d3b7/audit/blob/main/evm-audit-master/SKILL.md) |
+| **Methodology** | Recon → select domain skills → parallel checklist agents → synthesize `AUDIT-REPORT.md` → file issues for Medium+ |
+
+### What we audit with it
+
+pumperp’s onchain footprint is small, so the relevant skills are typically:
+
+| Skill | Why |
+| --- | --- |
+| `evm-audit-general` | Always — cross-cutting EVM footguns |
+| `evm-audit-access-control` | `ProtocolRegistry` is `Ownable` — enroll/pause/resume |
+| `evm-audit-precision-math` | Leverage / numeric fields in registry config |
+| `evm-audit-chain-specific` | Deployed on **Base** — L2 assumptions |
+| `evm-audit-dos` | Unbounded `enrolledTokens` iteration if extended |
+
+We point the agent at `contracts/src/ProtocolRegistry.sol` (and tests under `contracts/test/`) when contracts change. Findings are triaged like any other issue — fix, defer, or accept with documented rationale.
+
+### What it does *not* cover
+
+The audit skills target **EVM smart contracts**. They do **not** systematically review:
+
+- The **TypeScript engine** (`backend/src/workers/`, `state.ts`, hot-wallet automation)
+- **Clanker / Avantis / Uniswap** integrations (third-party contracts and APIs)
+- **Operational security** (key management, RPC trust, Venice/Pinata/Neynar keys)
+- **Economic / MEV** behavior of live desk and buyback loops
+
+Treat backend and ops as separate review surfaces. For contract-adjacent flows (swaps, burns, fee claims), also read [Security patterns](https://ethskills.com/security/SKILL.md) and manual-test critical paths.
+
+### Run the same review yourself
+
+Anyone can reproduce or extend what we do:
+
+```bash
+git clone https://github.com/38d3b7/audit.git
+```
+
+Then, in an agent session (Cursor, Claude Code, etc.):
+
+1. Add the repo as a skill/plugin, or reference `audit/evm-audit-master/SKILL.md` directly.
+2. Point at the code under review, e.g. `https://github.com/fraserbrown/pumperp/blob/main/contracts/src/ProtocolRegistry.sol`.
+3. Follow the master routing table to load domain checklists.
+4. Walk checklists and produce findings in the [standard format](https://github.com/38d3b7/audit/blob/main/evm-audit-master/SKILL.md#standard-finding-format).
+
+Example invocation (from the skill README):
+
+```
+Audit this contract and file issues: https://github.com/fraserbrown/pumperp/blob/main/contracts/src/ProtocolRegistry.sol
+Checklists: ./evm-audit-master/SKILL.md
+```
+
+### Stronger approaches (recommended for serious capital)
+
+The audit skill is a **cheap, repeatable first pass**. For production deployments or large TVL, prefer or combine with:
+
+| Approach | When |
+| --- | --- |
+| **Professional audit firm** | Pre-mainnet or before significant TVL — human experts, liability, report |
+| **Public contest** ([Code4rena](https://code4rena.com/), [Sherlock](https://audits.sherlock.xyz/), [Cantina](https://cantina.xyz/)) | Incentivized whitehats, broad coverage |
+| **Bug bounty** ([Immunefi](https://immunefi.com/)) | Ongoing disclosure after launch |
+| **Manual review + invariant tests** | Foundry `forge test`, property tests, fork tests against Base |
+| **Other agent skills** | e.g. [ethskills audit](https://ethskills.com/audit/SKILL.md) for defensive patterns; fork or extend `38d3b7/audit` with your own checklists |
+
+We encourage contributors and fork operators to run **`38d3b7/audit`** (or better) on any contract changes **before** relying on pumperp with real funds — and to share findings via GitHub issues on the main repo.
 
 ## Secrets
 
