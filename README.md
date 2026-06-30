@@ -1,6 +1,6 @@
-# pumperp-docs
+# PUMPERP Docs
 
-Documentation for [pumperp](https://pumperp.com) — perpetual-backed Clanker tokens on Base.
+Documentation for [pumperp](https://pumperp.com) — perpetual-backed Clanker tokens on Base. Democratizing AI trading intelligence.
 
 Hosted at [docs.pumperp.com](https://docs.pumperp.com).
 
