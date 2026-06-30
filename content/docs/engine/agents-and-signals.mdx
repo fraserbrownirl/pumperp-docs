@@ -4,7 +4,7 @@ description: How desk entry picks market, side, and leverage before opening on A
 llmDescription: "Per-token desk agent decideDeskEntry in agent.ts. Primary path: Venice LLM via venice.ts when VENICE_AGENT_ENABLED and API key available (VENICE_API_KEY or auto-mint). Fallback: momentum signal engine market-signal.ts evaluateEntry on ETH/BTC, rank by abs momentum. SIGNAL.enabled=false opens default long at max leverage. Leverage capped min RISK.leverage AVANTIS_MAX_LEVERAGE. Registry underlying/isLong not binding at open. Pyth Hermes prices."
 ---
 
-Unlike Fission (where registration tied a token to an underlying like SOL-PERP), pumperp desks are opened by an **agent** that picks live market structure per token.
+Pumperp desks are opened by an **agent** that picks live market structure per token.
 
 ## Decision flow
 
